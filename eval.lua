@@ -140,11 +140,11 @@ local function eval_split(split, evalopt)
         entry.file_name = data.infos[k].file_path
       end
       table.insert(predictions, entry)
-      local outname = entry.image_id .. '.json'
-      utils.write_json(outname, entry.caption)
+      local outname = entry.file_path .. '.json'
+      utils.write_json(outname, { caption =  entry.caption } )
       print('wrote to ' .. outname)
       if verbose then
-        print(string.format('image %s: %s', entry.image_id, entry.caption))
+        print(string.format('image %s: %s', entry.file_path, entry.caption))
       end
     end
 
