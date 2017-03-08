@@ -125,7 +125,7 @@ local function eval_split(split, evalopt)
     if data.images:dim() == 0 then
        --no data available	
 	print('no data available, sleeping')
-	sleep(0.05)
+	sleep(0.2)
     else
 	-- data available
 	print('data available!')
