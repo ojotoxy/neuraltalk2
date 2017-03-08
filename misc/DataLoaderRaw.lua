@@ -44,7 +44,6 @@ function DataLoaderRaw:__init(opt)
     for file in paths.files(opt.folder_path, isImage) do
       local fullpath = path.join(opt.folder_path, file)
       table.insert(self.files, fullpath)
-      os.remove(fullpath) -- delete it as soon as its read
       table.insert(self.ids, tostring(n)) -- just order them sequentially
       n=n+1
     end
@@ -82,6 +81,8 @@ function DataLoaderRaw:getBatch(opt)
 
     -- load the image
     local img = image.load(self.files[ri], 3, 'byte')
+    os.remove(self.files[ri]) -- delete it as soon as its read
+
     img_batch_raw[i] = image.scale(img, 256, 256)
 
     -- and record associated info as well
