@@ -10,6 +10,9 @@ require 'misc.DataLoaderRaw'
 require 'misc.LanguageModel'
 local net_utils = require 'misc.net_utils'
 
+require 'socket'
+
+
 -------------------------------------------------------------------------------
 -- Input arguments and options
 -------------------------------------------------------------------------------
@@ -80,11 +83,9 @@ local vocab = checkpoint.vocab -- ix -> word mapping
 -------------------------------------------------------------------------------
 -- Create the Data Loader instance
 -------------------------------------------------------------------------------
-local loader
-if string.len(opt.image_folder) == 0 then
-  loader = DataLoader{h5_file = opt.input_h5, json_file = opt.input_json}
-else
-  loader = DataLoaderRaw{folder_path = opt.image_folder, coco_json = opt.coco_json}
+
+local function sleep(sec)
+  socket.select(nil, nil, sec)
 end
 
 -------------------------------------------------------------------------------
@@ -110,50 +111,61 @@ local function eval_split(split, evalopt)
 
   protos.cnn:evaluate()
   protos.lm:evaluate()
-  loader:resetIterator(split) -- rewind iteator back to first datapoint in the split
+	
+
   local n = 0
   local loss_sum = 0
   local loss_evals = 0
   local predictions = {}
   while true do
-
+    local loader = DataLoaderRaw{folder_path = opt.image_folder, coco_json = opt.coco_json}
+    loader:resetIterator(split) -- rewind iteator back to first datapoint in the split
     -- fetch a batch of data
     local data = loader:getBatch{batch_size = opt.batch_size, split = split, seq_per_img = opt.seq_per_img}
-    data.images = net_utils.prepro(data.images, false, opt.gpuid >= 0) -- preprocess in place, and don't augment
-    n = n + data.images:size(1)
+    if data.images:size(1) == 0 then
+       --no data available	
+	print('no data available, sleeping')
+	sleep(0.05)
+    else
+	-- data available
+	print('data available!')
+	    data.images = net_utils.prepro(data.images, false, opt.gpuid >= 0) -- preprocess in place, and don't augment
+	    n = n + data.images:size(1)
 
-    -- forward the model to get loss
-    local feats = protos.cnn:forward(data.images)
+	    -- forward the model to get loss
+	    local feats = protos.cnn:forward(data.images)
 
-    -- evaluate loss if we have the labels
-    local loss = 0
-    if data.labels then
-      local expanded_feats = protos.expander:forward(feats)
-      local logprobs = protos.lm:forward{expanded_feats, data.labels}
-      loss = protos.crit:forward(logprobs, data.labels)
-      loss_sum = loss_sum + loss
-      loss_evals = loss_evals + 1
+	    -- evaluate loss if we have the labels
+	    local loss = 0
+	    if data.labels then
+	      local expanded_feats = protos.expander:forward(feats)
+	      local logprobs = protos.lm:forward{expanded_feats, data.labels}
+	      loss = protos.crit:forward(logprobs, data.labels)
+	      loss_sum = loss_sum + loss
+	      loss_evals = loss_evals + 1
+	    end
+
+	    -- forward the model to also get generated samples for each image
+	    local sample_opts = { sample_max = opt.sample_max, beam_size = opt.beam_size, temperature = opt.temperature }
+	    local seq = protos.lm:sample(feats, sample_opts)
+	    local sents = net_utils.decode_sequence(vocab, seq)
+	    for k=1,#sents do
+	      local entry = {image_id = data.infos[k].id, caption = sents[k]}
+	      if opt.dump_path == 1 then
+		entry.file_name = data.infos[k].file_path
+	      end
+	      table.insert(predictions, entry)
+	      local outname = 'outputs/' .. basename(data.infos[k].file_path) .. '.json'
+	      utils.write_json(outname, { caption =  entry.caption } )
+	      print('wrote to ' .. outname)
+	      if verbose then
+		print(string.format('image %s: %s', entry.file_path, entry.caption))
+	      end
+	    end
     end
+		
 
-    -- forward the model to also get generated samples for each image
-    local sample_opts = { sample_max = opt.sample_max, beam_size = opt.beam_size, temperature = opt.temperature }
-    local seq = protos.lm:sample(feats, sample_opts)
-    local sents = net_utils.decode_sequence(vocab, seq)
-    for k=1,#sents do
-      local entry = {image_id = data.infos[k].id, caption = sents[k]}
-      if opt.dump_path == 1 then
-        entry.file_name = data.infos[k].file_path
-      end
-      table.insert(predictions, entry)
-      local outname = 'outputs/' .. basename(data.infos[k].file_path) .. '.json'
-      utils.write_json(outname, { caption =  entry.caption } )
-      print('wrote to ' .. outname)
-      if verbose then
-        print(string.format('image %s: %s', entry.file_path, entry.caption))
-      end
-    end
 
-    if data.bounds.wrapped then break end -- the split ran out of data, lets break out
 
   end
 
