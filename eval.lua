@@ -140,43 +140,18 @@ local function eval_split(split, evalopt)
         entry.file_name = data.infos[k].file_path
       end
       table.insert(predictions, entry)
-      if opt.dump_images == 1 then
-        -- dump the raw image to vis/ folder
-        local cmd = 'cp "' .. path.join(opt.image_root, data.infos[k].file_path) .. '" vis/imgs/img' .. #predictions .. '.jpg' -- bit gross
-        print(cmd)
-        os.execute(cmd) -- dont think there is cleaner way in Lua
-      end
+      local outname = entry.image_id .. '.json'
+      utils.write_json(outname, entry.caption)
+      print('wrote to ' .. outname)
       if verbose then
         print(string.format('image %s: %s', entry.image_id, entry.caption))
       end
     end
 
-    -- if we wrapped around the split or used up val imgs budget then bail
-    local ix0 = data.bounds.it_pos_now
-    local ix1 = math.min(data.bounds.it_max, num_images)
-    if verbose then
-      print(string.format('evaluating performance... %d/%d (%f)', ix0-1, ix1, loss))
-    end
-
     if data.bounds.wrapped then break end -- the split ran out of data, lets break out
-    if num_images >= 0 and n >= num_images then break end -- we've used enough images
+
   end
 
-  local lang_stats
-  if opt.language_eval == 1 then
-    lang_stats = net_utils.language_eval(predictions, opt.id)
-  end
-
-  return loss_sum/loss_evals, predictions, lang_stats
 end
 
-local loss, split_predictions, lang_stats = eval_split(opt.split, {num_images = opt.num_images})
-print('loss: ', loss)
-if lang_stats then
-  print(lang_stats)
-end
-
-if opt.dump_json == 1 then
-  -- dump the json
-  utils.write_json('vis/vis.json', split_predictions)
-end
+eval_split(opt.split, {num_images = opt.num_images})
