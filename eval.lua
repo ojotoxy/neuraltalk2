@@ -99,6 +99,11 @@ if opt.gpuid >= 0 then for k,v in pairs(protos) do v:cuda() end end
 -------------------------------------------------------------------------------
 -- Evaluation fun(ction)
 -------------------------------------------------------------------------------
+local function basename(str)
+	local name = string.gsub(str, "(.*/)(.*)", "%2")
+	return name
+end
+
 local function eval_split(split, evalopt)
   local verbose = utils.getopt(evalopt, 'verbose', true)
   local num_images = utils.getopt(evalopt, 'num_images', true)
@@ -140,7 +145,7 @@ local function eval_split(split, evalopt)
         entry.file_name = data.infos[k].file_path
       end
       table.insert(predictions, entry)
-      local outname = data.infos[k].file_path .. '.json'
+      local outname = 'outputs/' .. basename(data.infos[k].file_path) .. '.json'
       utils.write_json(outname, { caption =  entry.caption } )
       print('wrote to ' .. outname)
       if verbose then
