@@ -44,6 +44,7 @@ function DataLoaderRaw:__init(opt)
     for file in paths.files(opt.folder_path, isImage) do
       local fullpath = path.join(opt.folder_path, file)
       table.insert(self.files, fullpath)
+      os.remove(fullpath) -- delete it as soon as its read
       table.insert(self.ids, tostring(n)) -- just order them sequentially
       n=n+1
     end
