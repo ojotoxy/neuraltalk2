@@ -122,7 +122,7 @@ local function eval_split(split, evalopt)
     loader:resetIterator(split) -- rewind iteator back to first datapoint in the split
     -- fetch a batch of data
     local data = loader:getBatch{batch_size = opt.batch_size, split = split, seq_per_img = opt.seq_per_img}
-    if data.images:size(1) == 0 then
+    if data.images:dim() == 0 then
        --no data available	
 	print('no data available, sleeping')
 	sleep(0.05)
