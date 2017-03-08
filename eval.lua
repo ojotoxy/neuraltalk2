@@ -140,7 +140,7 @@ local function eval_split(split, evalopt)
         entry.file_name = data.infos[k].file_path
       end
       table.insert(predictions, entry)
-      local outname = entry.file_path .. '.json'
+      local outname = data.infos[k].file_path .. '.json'
       utils.write_json(outname, { caption =  entry.caption } )
       print('wrote to ' .. outname)
       if verbose then
