@@ -124,8 +124,7 @@ local function eval_split(split, evalopt)
     local data = loader:getBatch{batch_size = opt.batch_size, split = split, seq_per_img = opt.seq_per_img}
     if data.images:dim() == 0 then
        --no data available	
-	print('no data available, sleeping')
-	sleep(0.2)
+       sleep(0.2)
     else
 	-- data available
 	print('data available!')
