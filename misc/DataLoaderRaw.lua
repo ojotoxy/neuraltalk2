@@ -14,7 +14,7 @@ function DataLoaderRaw:__init(opt)
   local coco_json = utils.getopt(opt, 'coco_json', '')
 
   -- load the json file which contains additional information about the dataset
-  print('DataLoaderRaw loading images from folder: ', opt.folder_path)
+  -- print('DataLoaderRaw loading images from folder: ', opt.folder_path)
 
   self.files = {}
   self.ids = {}
@@ -29,7 +29,7 @@ function DataLoaderRaw:__init(opt)
     end
   else
     -- read in all the filenames from the folder
-    print('listing all images in directory ' .. opt.folder_path)
+    -- print('listing all images in directory ' .. opt.folder_path)
     local function isImage(f)
       local supportedExt = {'.jpg','.JPG','.jpeg','.JPEG','.png','.PNG','.ppm','.PPM'}
       for _,ext in pairs(supportedExt) do
