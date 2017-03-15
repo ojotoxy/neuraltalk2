@@ -80,16 +80,25 @@ function DataLoaderRaw:getBatch(opt)
     self.iterator = ri_next
 
     -- load the image
-    local img = image.load(self.files[ri], 3, 'byte')
-    os.remove(self.files[ri]) -- delete it as soon as its read
+    local status, img = pcall(function()
+      return image.load(self.files[ri], 3, 'byte')
+    end)
+    pcall(function()
+      os.remove(self.files[ri]) -- delete it as soon as its read
+    end)
+    if status then
 
-    img_batch_raw[i] = image.scale(img, 256, 256)
+      img_batch_raw[i] = image.scale(img, 256, 256)
 
-    -- and record associated info as well
-    local info_struct = {}
-    info_struct.id = self.ids[ri]
-    info_struct.file_path = self.files[ri]
-    table.insert(infos, info_struct)
+      -- and record associated info as well
+      local info_struct = {}
+      info_struct.id = self.ids[ri]
+      info_struct.file_path = self.files[ri]
+      table.insert(infos, info_struct)
+    else
+      error('failed to load an image, but we deleted it so hopefully ok')
+    end
+
   end
 
   local data = {}
